@@ -1,0 +1,62 @@
+#!/bin/bash 
+argdesc="[options] command [command-args]..."
+desc="tool for batch administration of CoinTerra's TerraMiners\n
+commands:\n
+find <ip-range>			output the IP address of all TerraMiners in the ip-range (eg. 192.168.1.0/24)\n
+upgrade <ip-addr> [<tarball>]	upgrade the TerraMiner on <ip-addr> with <tarball> (if <tarball> is omited the latest version in the current directory is used)\n
+\n
+This programm requires sshpass to be installed.\n
+Example to batch upgrade all local TerraMiners: tmt find 192.168.1.0/24 | xargs -i tmt upgrade {}\n"
+
+minargs=1
+maxargs=2
+
+password=cointerra
+sshport=22
+
+shopt -s extglob
+
+while getopts "p:P:" flag
+do
+	case $flag in
+		p ) password=$OPTARG
+			;;
+		P ) sshport=$OPTARG
+			;;
+		* ) usage
+			exit
+			;;
+	esac
+done
+
+function usage {
+	echo -e "usage: `basename $0` [-p <password>] [-P <sshport>] <command> <command-args> ..."
+	echo -e $desc
+	exit
+}
+
+shift $((OPTIND-1))
+
+cmd=$1
+
+shift 1
+
+case $cmd in
+	find) range=$1
+		nmap -p 14028 --open -oG - $range | grep Host | grep open | cut -f 2 -d " " 
+		;;
+ 	upgrade) ip=$1
+                if [ $2 ] 
+		then
+                	filename=$2
+		else
+                	filename=`ls -1 TerraMiner_+([0-9]).+([0-9]).+([0-9]).tgz | tail -1`
+		fi
+		echo upgrading to $filename
+		sshpass -p $password scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -P $sshport $filename _upgradeboot.sh root@$ip:/tmp
+		sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip /tmp/_upgradeboot.sh /tmp/`basename $filename`
+		;;
+	* ) usage
+	;;
+esac
+
