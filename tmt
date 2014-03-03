@@ -4,8 +4,14 @@ desc="tool for batch administration of CoinTerra's TerraMiners\n
 commands:\n
 find <ip-range>			output the IP address of all TerraMiners in the ip-range (eg. 192.168.1.0/24)\n
 upgrade <ip-addr> [<tarball>]	upgrade the TerraMiner on <ip-addr> with <tarball> (if <tarball> is omited the latest version in the current directory is used)\n
+version <ip-addr>               prints the TerraMiner system version\n
+stats <ip-addr> [<prefix>]      dumps the cgminer stats from the TerraMiner in JSON format (if <prefix> is given then it is dumped to the file <prefix>_<ip-addr>.json instead of stdout)\n
+usbcount <ip-addr>              prints the total number of boards detected by the usb host and the number of programmed ones\n 
+login <ip-addr>                 interactively login to the TerraMiner\n
+reboot <ip-addr>                reboot the TerraMiner\n
+restart <ip-addr>               restart the cgminer service on the TerraMiner\n
 \n
-This programm requires sshpass to be installed.\n
+This programm requires nmap and sshpass to be installed and in the path.\n
 Example to batch upgrade all local TerraMiners: tmt find 192.168.1.0/24 | xargs -i tmt upgrade {}\n"
 
 minargs=1
@@ -42,12 +48,12 @@ cmd=$1
 shift 1
 
 case $cmd in
-	find) range=$1
+	find ) range=$1
 		nmap -p 14028 --open -oG - $range | grep Host | grep open | cut -f 2 -d " " 
 		;;
- 	upgrade) ip=$1
+ 	upgrade ) ip=$1
                 if [ $2 ] 
-		then
+	        then
                 	filename=$2
 		else
                 	filename=`ls -1 TerraMiner_+([0-9]).+([0-9]).+([0-9]).tgz | tail -1`
@@ -55,6 +61,31 @@ case $cmd in
 		echo upgrading to $filename
 		sshpass -p $password scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -P $sshport $filename _upgradeboot.sh root@$ip:/tmp
 		sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip /tmp/_upgradeboot.sh /tmp/`basename $filename`
+		;;
+        version ) ip=$1
+		sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip cat /version.txt
+		;;
+        stats ) ip=$1
+                if [ $2 ] 
+	        then
+	            echo -n '{"command":"stats"}' | nc $ip 4028 >$2_$ip.json
+		else
+	            echo -n '{"command":"stats"}' | nc $ip 4028
+		fi
+		;;
+        usbcount ) ip=$1
+		boards=`sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip lsusb | grep 1cbe: | wc -l`
+		programmed=`sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip lsusb | grep 1cbe:0003 | wc -l`
+		echo $boards,$programmed
+		;;
+        login ) ip=$1
+		sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip
+		;;
+        reboot ) ip=$1
+		sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip /sbin/reboot
+		;;
+        restart ) ip=$1
+		sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip /etc/init.d/S99cgminer restart
 		;;
 	* ) usage
 	;;
