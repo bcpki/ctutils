@@ -10,6 +10,7 @@ usbcount <ip-addr>              prints the total number of boards detected by th
 login <ip-addr>                 interactively login to the TerraMiner\n
 reboot <ip-addr>                reboot the TerraMiner\n
 restart <ip-addr>               restart the cgminer service on the TerraMiner\n
+getconf <ip-addr>		dump cgminer.conf from TerraMiner\n
 \n
 This programm requires nmap and sshpass to be installed and in the path.\n
 Example to batch upgrade all local TerraMiners: tmt find 192.168.1.0/24 | xargs -i tmt upgrade {}\n"
@@ -86,6 +87,9 @@ case $cmd in
 		;;
         restart ) ip=$1
 		sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip /etc/init.d/S99cgminer restart
+		;;
+        getconf ) ip=$1
+		ping $ip && sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip cat /Angstrom/Cointerra/cgminer.conf
 		;;
 	* ) usage
 	;;
