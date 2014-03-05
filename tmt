@@ -12,6 +12,7 @@ reboot <ip-addr>                reboot the TerraMiner\n
 restart <ip-addr>               restart the cgminer service on the TerraMiner\n
 getconf <ip-addr>		dump cgminer.conf from TerraMiner\n
 getlog <ip-addr>		dump cgminer.log from TerraMiner\n
+getif <ip-addr>                 dump ifconfig from TerraMiner\n
 pushconf <ip-addr> [<filename>]	push cgminer.conf file to TerraMiner\n
 \n
 This programm requires nmap and sshpass to be installed and in the path.\n
@@ -104,6 +105,14 @@ case $cmd in
 		    sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip cat /tmp/cgminer.log > $2_$ip.log
 		else
 		    sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip cat /tmp/cgminer.log
+		fi
+		;;
+        getif ) ip=$1
+                if [ $2 ] 
+	        then
+		    sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip ifconfig | grep inet | grep -v "127.0.0.1" > $2_$ip.if
+		else
+		    sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip ifconfig | grep inet | grep -v "127.0.0.1"
 		fi
 		;;
  	pushconf ) ip=$1
