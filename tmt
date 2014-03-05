@@ -11,6 +11,8 @@ login <ip-addr>                 interactively login to the TerraMiner\n
 reboot <ip-addr>                reboot the TerraMiner\n
 restart <ip-addr>               restart the cgminer service on the TerraMiner\n
 getconf <ip-addr>		dump cgminer.conf from TerraMiner\n
+getlog <ip-addr>		dump cgminer.log from TerraMiner\n
+pushconf <ip-addr> [<filename>]	push cgminer.conf file to TerraMiner\n
 \n
 This programm requires nmap and sshpass to be installed and in the path.\n
 Example to batch upgrade all local TerraMiners: tmt find 192.168.1.0/24 | xargs -i tmt upgrade {}\n"
@@ -89,7 +91,30 @@ case $cmd in
 		sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip /etc/init.d/S99cgminer restart
 		;;
         getconf ) ip=$1
-		ping $ip && sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip cat /Angstrom/Cointerra/cgminer.conf
+                if [ $2 ] 
+	        then
+		    sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip cat /Angstrom/Cointerra/cgminer.conf > $2_$ip.conf
+		else
+		    sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip cat /Angstrom/Cointerra/cgminer.conf
+		fi
+		;;
+        getlog ) ip=$1
+                if [ $2 ] 
+	        then
+		    sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip cat /tmp/cgminer.log > $2_$ip.log
+		else
+		    sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip cat /tmp/cgminer.log
+		fi
+		;;
+ 	pushconf ) ip=$1
+                if [ $2 ] 
+	        then
+                	filename=$2
+		else
+                	filename=cgminer.conf
+		fi
+		echo pushing config file $filename
+		sshpass -p $password scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -P $sshport $filename root@$ip:/Angstrom/Cointerra
 		;;
 	* ) usage
 	;;
