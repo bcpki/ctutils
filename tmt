@@ -64,7 +64,7 @@ case $cmd in
 		fi
 		echo upgrading to $filename
 		sshpass -p $password scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -P $sshport $filename _upgradeboot.sh root@$ip:/tmp
-		sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip /tmp/_upgradeboot.sh /tmp/`basename $filename`
+		sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip /tmp/_upgradeboot.sh `basename $filename` &
 		;;
         version ) ip=$1
 		sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip cat /version.txt
@@ -107,12 +107,12 @@ case $cmd in
 		    sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip cat /tmp/cgminer.log
 		fi
 		;;
-        getif ) ip=$1
+        getmac ) ip=$1
                 if [ $2 ] 
 	        then
-		    sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip ifconfig | grep inet | grep -v "127.0.0.1" > $2_$ip.if
+		    sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip /sbin/ifconfig | grep eth0 | sed -e 's/.*HWaddr //' > $2_$ip.mac
 		else
-		    sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip ifconfig | grep inet | grep -v "127.0.0.1"
+		    sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip /sbin/ifconfig | grep eth0 | sed -e 's/.*HWaddr //'
 		fi
 		;;
  	pushconf ) ip=$1
@@ -124,6 +124,11 @@ case $cmd in
 		fi
 		echo pushing config file $filename
 		sshpass -p $password scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -P $sshport $filename root@$ip:/Angstrom/Cointerra
+		;;
+        zero ) ip=$1
+		sshpass -p $password scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -P $sshport $filename _zero.sh root@$ip:/tmp
+		sshpass -p $password ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -p $sshport root@$ip /tmp/_zero.sh
+	    #echo -n "zero|all,true" | nc $ip 4028
 		;;
 	* ) usage
 	;;
